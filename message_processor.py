@@ -12,7 +12,7 @@ class ExpenseManager:
 
     def process_members(self, input_members):
         # 處理成員輸入（不得重複、不得為空）
-        self.members = input_members.strip().split("、")
+        self.members = [m.strip() for m in input_members.strip().split("、") if m.strip()]
         if not self.members:
             raise ValueError("成員名單不得為空。")
         if len(self.members) != len(set(self.members)):
