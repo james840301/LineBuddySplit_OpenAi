@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9"  # Lambda Runtime 對應版本
+          python-version: "3.13"  # 與 AWS Lambda Runtime 一致
 
       - name: Install dependencies
         run: |
@@ -27,7 +27,7 @@ jobs:
         run: zip -r function.zip .  # 打包程式碼和依賴項
 
       - name: Deploy to AWS Lambda
-        uses: aws-actions/aws-lambda-deploy@v1
+        uses: aws-actions/aws-lambda-deploy@v1.1.1
         with:
           function-name: LineBuddySplit_OpenAi  # 替換為你的 Lambda 函數名稱
           zip-file: function.zip
