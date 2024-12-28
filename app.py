@@ -63,30 +63,31 @@ def serve_chart(filename):
     """
     return send_from_directory(STATIC_DIR, filename, mimetype='text/html')
 
-@app.route('/ping')
-def ping():
-    """
-    提供健康檢查的端點。
-    可用於測試伺服器是否正常運行。
-    """
-    print("Ping endpoint was hit!")  # 日誌，用於確認是否有成功觸發
-    return "pong", 200
+# AWS不需要喚醒功能
+# @app.route('/ping')
+# def ping():
+#     """
+#     提供健康檢查的端點。
+#     可用於測試伺服器是否正常運行。
+#     """
+#     print("Ping endpoint was hit!")  # 日誌，用於確認是否有成功觸發
+#     return "pong", 200
 
-def keep_awake():
-    """
-    定時向應用自身發送請求，防止應用進入休眠狀態。
-    適用於某些平台（例如 Render）在長時間無請求時可能停止運行的情況。
-    """
-    while True:
-        try:
-            response = requests.get(f"{BASE_URL}/ping", timeout=10)  # 發送 GET 請求至 /ping
-            print(f"Sent keep-alive ping to {BASE_URL}/ping - Response: {response.status_code}")  # 紀錄響應狀態碼
-        except Exception as e:
-            print("Error sending keep-alive ping:", e)  # 紀錄錯誤資訊
-        time.sleep(600)  # 每 10 分鐘發送一次
+# def keep_awake():
+#     """
+#     定時向應用自身發送請求，防止應用進入休眠狀態。
+#     適用於某些平台（例如 Render）在長時間無請求時可能停止運行的情況。
+#     """
+#     while True:
+#         try:
+#             response = requests.get(f"{BASE_URL}/ping", timeout=10)  # 發送 GET 請求至 /ping
+#             print(f"Sent keep-alive ping to {BASE_URL}/ping - Response: {response.status_code}")  # 紀錄響應狀態碼
+#         except Exception as e:
+#             print("Error sending keep-alive ping:", e)  # 紀錄錯誤資訊
+#         time.sleep(600)  # 每 10 分鐘發送一次
 
 if __name__ == "__main__":
-    # 啟動喚醒功能於單獨線程
-    threading.Thread(target=keep_awake, daemon=True).start()
+    # # 啟動喚醒功能於單獨線程
+    # threading.Thread(target=keep_awake, daemon=True).start()
     # 啟動 Flask 應用
     app.run(debug=True, port=5000)
