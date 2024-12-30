@@ -16,13 +16,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.13"  # Lambda Runtime 對應版本
+          python-version: "3.13"  # 與 Lambda Runtime 對應的 Python 版本
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt -t ./package  # 安裝依賴到 ./package 目錄
-          cp -r . ./package  # 複製程式碼到 ./package 目錄
+          cp -r $(find . -maxdepth 1 ! -name 'package' ! -name '.' -type d -o -type f) ./package/  # 複製程式碼到 ./package
 
       - name: Zip the function
         run: |
