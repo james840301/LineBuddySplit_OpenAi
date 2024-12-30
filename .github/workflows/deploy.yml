@@ -3,7 +3,7 @@ name: Deploy to AWS Lambda
 on:
   push:
     branches:
-      - main  # 當推送到 main 分支時觸發部署
+      - main
 
 jobs:
   deploy:
@@ -16,26 +16,38 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.13"  # 與 Lambda Runtime 對應的 Python 版本
+          python-version: "3.13"
 
-      - name: Install dependencies
+      # 打包依賴並構建 Lambda Layer
+      - name: Build Lambda Layer
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt -t ./package  # 安裝依賴到 ./package 目錄
-          cp -r $(find . -maxdepth 1 ! -name 'package' ! -name '.' -type d -o -type f) ./package/  # 複製程式碼到 ./package
+          mkdir -p layer/python
+          pip install -r requirements.txt -t layer/python
+          cd layer
+          zip -r ../lambda_layer.zip .
 
-      - name: Zip the function
+      # 部署 Lambda Layer
+      - name: Deploy Lambda Layer
+        uses: appleboy/lambda-action@master
+        with:
+          layer: lambda_layer.zip
+          region: us-east-1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # 打包 Lambda 函數（僅代碼）
+      - name: Package Function Code
         run: |
-          cd ./package
-          zip -r ../function.zip .  # 打包 ./package 目錄為 ZIP 文件
+          zip -r function.zip app.py
 
+      # 部署 Lambda 函數
       - name: Deploy to AWS Lambda
         uses: appleboy/lambda-action@master
         with:
-          function_name: LineBuddySplit_OpenAi  # 替換為你的 Lambda 函數名稱
-          region: us-east-1  # 替換為你的 AWS 地區
+          function_name: LineBuddySplit_OpenAi
+          region: us-east-1
           zip_file: function.zip
-          runtime: python3.13  # 與 Lambda Runtime 一致
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
