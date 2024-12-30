@@ -63,7 +63,14 @@ def serve_chart(filename):
     """
     return send_from_directory(STATIC_DIR, filename, mimetype='text/html')
 
-# AWS不需要喚醒功能
+# 新增 Lambda 入口點
+def lambda_handler(event, context):
+    """
+    Lambda 的入口函數，使用 AWS WSGI 適配器將事件轉換為 WSGI 格式。
+    """
+    return WSGIAdapter(app)(event, context)
+
+## AWS不需要喚醒功能
 # @app.route('/ping')
 # def ping():
 #     """
