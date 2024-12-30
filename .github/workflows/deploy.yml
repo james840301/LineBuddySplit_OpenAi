@@ -10,13 +10,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 檢出代碼
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # 設定 Python 環境為 3.13
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.13"
+          python-version: "3.13" # Python 3.13 符合您的需求
 
       # 打包依賴並構建 Lambda Layer
       - name: Build Lambda Layer
@@ -30,13 +32,14 @@ jobs:
       - name: Deploy Lambda Layer
         uses: appleboy/lambda-action@master
         with:
-          layer: lambda_layer.zip
+          function_name: LineBuddySplit_OpenAi_layer # Layer 的唯一名稱
+          zip_file: lambda_layer.zip
           region: us-east-1
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      # 打包 Lambda 函數（僅代碼）
+      # 打包 Lambda 函數
       - name: Package Function Code
         run: |
           zip -r function.zip app.py
@@ -46,8 +49,11 @@ jobs:
         uses: appleboy/lambda-action@master
         with:
           function_name: LineBuddySplit_OpenAi
-          region: us-east-1
           zip_file: function.zip
+          runtime: python3.13 # 使用 Python 3.13 作為 Lambda 執行環境
+          handler: app.lambda_handler # 指定入口函數
+          region: us-east-1
+          layers: arn:aws:lambda:us-east-1:YOUR_ACCOUNT_ID:layer:LineBuddySplit_OpenAi_layer:1 # 替換為實際的 Layer ARN
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
