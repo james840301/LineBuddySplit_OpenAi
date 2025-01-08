@@ -8,14 +8,19 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 複製應用程式的檔案和資料夾
-COPY app ./app
-COPY user_message_handler ./
-COPY expense_chart_generator ./
-COPY message_processor ./
-COPY separate_charts ./
-COPY static ./static
+# 複製 Python 檔
+COPY app.py .
+COPY expense_chart_generator.py .
+COPY message_processor.py .
+COPY user_message_handler.py .
+COPY separate_charts.html .
+
+# 複製資料夾
 COPY rule ./rule
+COPY static ./static
 
 # 設定 Docker 容器啟動時執行的命令
+# 假設你的 app.py 裡面定義了:
+#   def lambda_handler(event, context):
+#       ...
 CMD ["app.lambda_handler"]
