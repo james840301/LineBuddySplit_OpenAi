@@ -25,7 +25,6 @@ jobs:
 
       # Step 3: 登入 AWS ECR
       - name: Log in to Amazon ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
       # Step 4: 建構 Docker 映像
@@ -41,10 +40,53 @@ jobs:
           docker tag ${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG
 
-      # Step 6: 部署到 AWS Lambda
-      - name: Deploy to AWS Lambda
+      # Step 6: 確保 Lambda 以容器映像 (packageType=Image) 存在並更新程式
+      - name: Ensure Lambda is Image-based and Update
         run: |
-          aws lambda update-function-code \
-            --function-name ${{ secrets.AWS_LAMBDA_FUNCTION_NAME }} \
-            --region ${{ secrets.AWS_REGION }} \
-            --image-uri ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:latest
+          FUNCTION_NAME=${{ secrets.AWS_LAMBDA_FUNCTION_NAME }}
+          REPO_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:latest"
+          ROLE_ARN=${{ secrets.AWS_LAMBDA_ROLE_ARN }}
+
+          echo "Checking if Lambda function [$FUNCTION_NAME] exists..."
+          FUNCTION_EXISTS=$(aws lambda get-function --function-name $FUNCTION_NAME 2>&1 || true)
+
+          if [[ $FUNCTION_EXISTS == *"ResourceNotFoundException"* ]]; then
+            # 函數不存在，直接建立 Image 型函數
+            echo "Function [$FUNCTION_NAME] does not exist. Creating a new Image-based function..."
+            aws lambda create-function \
+              --function-name "$FUNCTION_NAME" \
+              --package-type Image \
+              --code ImageUri="$REPO_URI" \
+              --role "$ROLE_ARN" \
+              --region ${{ secrets.AWS_REGION }}
+          else
+            # 函數已存在，檢查它的 packageType
+            PACKAGE_TYPE=$(aws lambda get-function-configuration \
+              --function-name "$FUNCTION_NAME" \
+              --query 'PackageType' \
+              --output text \
+              --region ${{ secrets.AWS_REGION }})
+
+            if [ "$PACKAGE_TYPE" = "Zip" ]; then
+              # 如果是 Zip，就刪除再重建
+              echo "Function [$FUNCTION_NAME] is currently Zip-based. Deleting it..."
+              aws lambda delete-function \
+                --function-name "$FUNCTION_NAME" \
+                --region ${{ secrets.AWS_REGION }}
+
+              echo "Creating a new Image-based function with the same name..."
+              aws lambda create-function \
+                --function-name "$FUNCTION_NAME" \
+                --package-type Image \
+                --code ImageUri="$REPO_URI" \
+                --role "$ROLE_ARN" \
+                --region ${{ secrets.AWS_REGION }}
+            else
+              # 已是 Image 型，直接更新
+              echo "Function [$FUNCTION_NAME] is already Image-based. Updating code..."
+              aws lambda update-function-code \
+                --function-name "$FUNCTION_NAME" \
+                --image-uri "$REPO_URI" \
+                --region ${{ secrets.AWS_REGION }}
+            fi
+          fi
