@@ -14,9 +14,5 @@ COPY expense_chart_generator.py .
 COPY message_processor.py .
 COPY user_message_handler.py .
 
-# 複製資料夾
-COPY rule ./rule
-COPY static ./static
-
 # 設定 Lambda 入口點（app.py 裡要有 lambda_handler）
 CMD ["app.lambda_handler"]
