@@ -36,8 +36,8 @@ jobs:
 
     # Step 5: 部署到 AWS Lambda
     - name: Deploy to AWS Lambda
-      uses: aws-actions/aws-lambda-deploy@v1
-      with:
-        function-name: ${{ secrets.AWS_LAMBDA_FUNCTION_NAME }} # Lambda 函數名稱
-        region: ${{ secrets.AWS_REGION }} # AWS 區域
-        image-uri: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:latest
+      run: |
+        aws lambda update-function-code \
+          --function-name ${{ secrets.AWS_LAMBDA_FUNCTION_NAME }} \
+          --region ${{ secrets.AWS_REGION }} \
+          --image-uri ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:latest
