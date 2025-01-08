@@ -3,7 +3,7 @@ name: Deploy to AWS Lambda
 on:
   push:
     branches:
-      - main # 當程式碼推送到 main 分支時觸發
+      - main  # 當程式碼推送到 main 分支時觸發
 
 jobs:
   build-and-deploy:
@@ -11,33 +11,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: 檢出程式碼
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      # Step 1: 檢出程式碼
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    # Step 2: 登入 AWS ECR
-    - name: Log in to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
+      # Step 2: 設定 AWS 認證與區域
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-    # Step 3: 建構 Docker 映像
-    - name: Build Docker image
-      run: |
-        # 替映像打上標籤
-        IMAGE_TAG=latest
-        docker build -t ${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG .
+      # Step 3: 登入 AWS ECR
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
 
-    # Step 4: 推送 Docker 映像到 AWS ECR
-    - name: Push Docker image to Amazon ECR
-      run: |
-        IMAGE_TAG=latest
-        docker tag ${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG
-        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG
+      # Step 4: 建構 Docker 映像
+      - name: Build Docker image
+        run: |
+          IMAGE_TAG=latest
+          docker build -t ${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG .
 
-    # Step 5: 部署到 AWS Lambda
-    - name: Deploy to AWS Lambda
-      run: |
-        aws lambda update-function-code \
-          --function-name ${{ secrets.AWS_LAMBDA_FUNCTION_NAME }} \
-          --region ${{ secrets.AWS_REGION }} \
-          --image-uri ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:latest
+      # Step 5: 推送 Docker 映像到 AWS ECR
+      - name: Push Docker image to Amazon ECR
+        run: |
+          IMAGE_TAG=latest
+          docker tag ${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG
+
+      # Step 6: 部署到 AWS Lambda
+      - name: Deploy to AWS Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ secrets.AWS_LAMBDA_FUNCTION_NAME }} \
+            --region ${{ secrets.AWS_REGION }} \
+            --image-uri ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:latest
