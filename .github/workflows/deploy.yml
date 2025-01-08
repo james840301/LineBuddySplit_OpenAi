@@ -3,57 +3,41 @@ name: Deploy to AWS Lambda
 on:
   push:
     branches:
-      - main
+      - main # 當程式碼推送到 main 分支時觸發
 
 jobs:
-  deploy:
+  build-and-deploy:
+    name: Build and Deploy Docker Image to AWS ECR
     runs-on: ubuntu-latest
 
     steps:
-      # 檢出代碼
-      - name: Checkout code
-        uses: actions/checkout@v3
+    # Step 1: 檢出程式碼
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      # 設定 Python 環境為 3.13
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.13" # Python 3.13 符合您的需求
+    # Step 2: 登入 AWS ECR
+    - name: Log in to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
 
-      # 打包依賴並構建 Lambda Layer
-      - name: Build Lambda Layer
-        run: |
-          mkdir -p layer/python
-          pip install -r requirements.txt -t layer/python
-          cd layer
-          zip -r ../lambda_layer.zip .
+    # Step 3: 建構 Docker 映像
+    - name: Build Docker image
+      run: |
+        # 替映像打上標籤
+        IMAGE_TAG=latest
+        docker build -t ${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG .
 
-      # 部署 Lambda Layer
-      - name: Deploy Lambda Layer
-        uses: appleboy/lambda-action@master
-        with:
-          function_name: LineBuddySplit_OpenAi_layer # Layer 的唯一名稱
-          zip_file: lambda_layer.zip
-          region: us-east-1
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    # Step 4: 推送 Docker 映像到 AWS ECR
+    - name: Push Docker image to Amazon ECR
+      run: |
+        IMAGE_TAG=latest
+        docker tag ${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG
+        docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:$IMAGE_TAG
 
-      # 打包 Lambda 函數
-      - name: Package Function Code
-        run: |
-          zip -r function.zip app.py
-
-      # 部署 Lambda 函數
-      - name: Deploy to AWS Lambda
-        uses: appleboy/lambda-action@master
-        with:
-          function_name: LineBuddySplit_OpenAi
-          zip_file: function.zip
-          runtime: python3.13 # 使用 Python 3.13 作為 Lambda 執行環境
-          handler: app.lambda_handler # 指定入口函數
-          region: us-east-1
-          layers: arn:aws:lambda:us-east-1:YOUR_ACCOUNT_ID:layer:LineBuddySplit_OpenAi_layer:1 # 替換為實際的 Layer ARN
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    # Step 5: 部署到 AWS Lambda
+    - name: Deploy to AWS Lambda
+      uses: aws-actions/aws-lambda-deploy@v1
+      with:
+        function-name: ${{ secrets.AWS_LAMBDA_FUNCTION_NAME }} # Lambda 函數名稱
+        region: ${{ secrets.AWS_REGION }} # AWS 區域
+        image-uri: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.AWS_ECR_REPOSITORY }}:latest

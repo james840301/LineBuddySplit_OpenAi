@@ -8,6 +8,8 @@ from user_message_handler import MessageHandler
 import threading
 import time
 import requests
+from aws_lambda_wsgi import response
+
 
 # 載入環境變數，從 .env 檔案中讀取設定
 load_dotenv()
@@ -68,7 +70,7 @@ def lambda_handler(event, context):
     """
     Lambda 的入口函數，使用 AWS WSGI 適配器將事件轉換為 WSGI 格式。
     """
-    return WSGIAdapter(app)(event, context)
+    return response(app, event, context)
 
 ## AWS不需要喚醒功能
 # @app.route('/ping')

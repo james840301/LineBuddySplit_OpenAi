@@ -350,8 +350,8 @@ class MessageHandler:
         context["chart_path"] = f"{self.base_url}/chart/{os.path.basename(chart_path)}"
 
         # 回傳計算結果
-        self.line_bot_api.reply_message(
-            event.reply_token,
+        self.line_bot_api.push_message(
+            event.source.user_id,
             TextSendMessage(text=f"計算結果如下：\n{result}")
         )
         # 推送圖表連結
