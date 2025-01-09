@@ -2,7 +2,7 @@
 FROM public.ecr.aws/lambda/python:3.13
 
 # 設定工作目錄
-WORKDIR /app
+WORKDIR /lambda
 
 # 複製需求檔案並安裝依賴
 COPY requirements.txt ./
