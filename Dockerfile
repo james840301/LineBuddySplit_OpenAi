@@ -15,4 +15,4 @@ COPY message_processor.py .
 COPY user_message_handler.py .
 
 # 設定 Lambda 入口點（app.py 裡要有 lambda_handler）
-CMD ["python", "app.py"]
+CMD ["app.lambda_handler"]
