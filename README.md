@@ -80,6 +80,7 @@
 - 同時會提供可視化圖表的連結。
 
 ## **專案結構**
+```
    LineBuddySplit_OpenAi/
    ├── app.py                     # 主應用程式
    ├── expense_chart_generator.py # 圖表生成邏輯
@@ -89,7 +90,7 @@
    ├── requirements.txt           # 套件需求
    ├── .env                       # 環境變數 (不會被提交到 Git)
    ├── README.md                  # 專案說明文件
-
+```
 ## **部署指南**
 1. **部署至 AWS Lambda：**：
 - 構建 Docker 容器：將應用程式打包為 Docker 映像。
